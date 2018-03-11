@@ -1,0 +1,39 @@
+---
+- hosts: all
+  gather_facts: yes
+  tasks:
+  - name: 'Update APT package cache'
+    action: apt update_cache=yes
+
+  - name: 'Upgrade APT to the lastest packages'
+    action: apt upgrade=safe
+
+  - name: 'Install the package "htop"'
+    apt:
+      name: htop
+      state: present
+
+  - copy:
+      src: templates/_usr_local_bin_autodvd
+      dest: /usr/local/bin/autodvd
+      owner: root
+      group: root
+      mode: u+rwx,g-wx,o-rw
+
+  - copy:
+      src: templates/_etc_udev_rules.d_70-persistent-cd.rules
+      dest: /etc/udev/rules.d/70-persistent-cd.rules
+      owner: root
+      group: root
+
+  - copy:
+      src: templates/_etc_udev_rules.d_80-autodvd.rules
+      dest: /etc/udev/rules.d/80-autodvd.rules
+      owner: root
+      group: root
+
+  - name: 'Reboot'
+    command: sleep 2 && reboot
+    async: 1
+    poll: 0
+    ignore_errors: true

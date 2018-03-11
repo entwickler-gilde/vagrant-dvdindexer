@@ -1,0 +1,34 @@
+#!/bin/bash
+{
+  env
+  if [ $ID_CDROM_MEDIA -eq 1 ]; then
+    mkdir -p /vagrant/dvdindex/dev
+    dev=`echo $DEVLINKS | cut -d ' ' -f 1`
+    devlock=/vagrant/dvdindex$DEVNAME.lock
+    if [ ! -f $devlock ]; then
+      touch $devlock
+      mkdir -p /var/run/usbmount$DEVNAME
+      mount -t $ID_FS_TYPE -o ro $dev /var/run/usbmount$DEVNAME
+      sum=`find /var/run/usbmount$DEVNAME -type f -print0 | sort -z | xargs -0 sha1sum | sha1sum | cut -d ' ' -f 1`
+      logfile=/vagrant/dvdindex/$sum.nfo
+      isofile=/vagrant/dvdindex/$sum.iso
+      lockfile=/vagrant/dvdindex/$sum.lock
+      touch $lockfile
+      echo "label $ID_FS_LABEL_ENC" > $logfile
+      echo "" >> $logfile
+      echo "folder $sum" >> $logfile
+      echo "" >> $logfile
+      ls -alR /var/run/usbmount$DEVNAME >> $logfile
+      umount -l /var/run/usbmount$DEVNAME
+      dd if=$dev of=$isofile bs=4194304
+      sum=`sha1sum $isofile | cut -d ' ' -f 1`
+      echo "iso $sum" >> $logfile
+      rm $lockfile
+      rm $devlock
+      eject
+    fi
+  else
+    umount -l /var/run/usbmount$DEVNAME
+    rm -rf /var/run/usbmount$DEVNAME
+  fi
+} &>> "/var/log/autodvd.log" &
